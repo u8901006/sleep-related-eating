@@ -1,0 +1,15 @@
+{
+  "name": "sleep-related-eating",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SRED daily research report generator",
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch_papers.mjs",
+    "report": "node scripts/generate_report.mjs",
+    "index": "node scripts/generate_index.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

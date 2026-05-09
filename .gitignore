@@ -1,0 +1,4 @@
+node_modules/
+papers.json
+*.tmp
+.DS_Store

@@ -1,0 +1,62 @@
+name: SRED Daily Report
+
+on:
+  schedule:
+    - cron: '15 0 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Target date (YYYY-MM-DD), leave empty for today'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version: '24'
+
+      - name: Determine date
+        id: date
+        run: |
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            echo "date=${{ github.event.inputs.date }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "date=$(TZ=Asia/Taipei date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch papers from PubMed
+        run: node scripts/fetch_papers.mjs --days 7 --max-papers 50 --output papers.json
+
+      - name: Generate AI report
+        timeout-minutes: 10
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+        run: >
+          node scripts/generate_report.mjs
+          --input papers.json
+          --output docs/sred-${{ steps.date.outputs.date }}.html
+          --date ${{ steps.date.outputs.date }}
+
+      - name: Generate index page
+        run: node scripts/generate_index.mjs
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/
+          git diff --staged --quiet || git commit -m "📄 SRED Daily Report ${{ steps.date.outputs.date }}"
+          git push
