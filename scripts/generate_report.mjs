@@ -6,9 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const API_BASE = 'https://open.bigmodel.cn/api/coding/paas/v4';
-const MODELS = ['GLM-5-Turbo', 'GLM-4.7', 'GLM-4.7-Flash'];
-const MAX_TOKENS = 50000;
+const API_BASE = 'https://integrate.api.nvidia.com/v1';
+const MODELS = ['nvidia/nemotron-3-super-120b-a12b', 'nvidia/nemotron-3-nano-30b-a3b'];
+const MAX_TOKENS = 16384;
 const TIMEOUT_MS = 480_000;
 const MAX_RETRIES = 3;
 
@@ -137,7 +137,7 @@ function robustJSONParse(content) {
   throw new Error('All JSON parse attempts failed');
 }
 
-async function callZhipuAPI(apiKey, papers) {
+async function callNvidiaAPI(apiKey, papers) {
   const userPrompt = buildUserPrompt(papers);
   for (const model of MODELS) {
     console.log(`Trying model: ${model}`);
@@ -155,8 +155,11 @@ async function callZhipuAPI(apiKey, papers) {
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: userPrompt },
             ],
-            temperature: 0.3,
+            temperature: 1.0,
+            top_p: 0.95,
             max_tokens: MAX_TOKENS,
+            stream: false,
+            chat_template_kwargs: { enable_thinking: false },
           }),
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
@@ -314,7 +317,7 @@ function generateHTML(analysis, date, paperCount, model) {
   </div>
 
   <footer>
-    <p>資料來源：<a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">PubMed</a> &nbsp;|&nbsp; AI 分析：${esc(model || 'GLM-5-Turbo')}</p>
+    <p>資料來源：<a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">PubMed</a> &nbsp;|&nbsp; AI 分析：${esc(model || MODELS[0])}</p>
     <p>本簡報由自動化系統生成，僅供學術參考，不構成醫療建議</p>
     <p>© ${new Date().getFullYear()} <a href="https://www.leepsyclinic.com/" target="_blank" rel="noopener">李政洋身心診所</a></p>
   </footer>
@@ -390,8 +393,8 @@ async function main() {
   if (!opts.output) throw new Error('--output is required');
   if (!opts.date) opts.date = new Date().toISOString().split('T')[0];
 
-  const apiKey = process.env.ZHIPU_API_KEY;
-  if (!apiKey) throw new Error('ZHIPU_API_KEY environment variable is required');
+  const apiKey = process.env.NVIDIA_API_KEY;
+  if (!apiKey) throw new Error('NVIDIA_API_KEY environment variable is required');
 
   const papers = loadPapers(resolve(ROOT, opts.input));
   console.log(`Loaded ${papers.length} papers`);
@@ -402,9 +405,9 @@ async function main() {
     return;
   }
 
-  console.log('Calling Zhipu API...');
-  const analysis = await callZhipuAPI(apiKey, papers);
-  const model = analysis._model || 'GLM-5-Turbo';
+  console.log('Calling NVIDIA API...');
+  const analysis = await callNvidiaAPI(apiKey, papers);
+  const model = analysis._model || MODELS[0];
   delete analysis._model;
 
   const html = generateHTML(analysis, opts.date, papers.length, model);

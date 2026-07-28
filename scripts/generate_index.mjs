@@ -73,7 +73,7 @@ function generateIndexHTML(reports) {
   </div>
 
   <footer>
-    <p>資料來源：<a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">PubMed</a> &nbsp;|&nbsp; AI 分析：GLM-5-Turbo</p>
+    <p>資料來源：<a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" rel="noopener">PubMed</a> &nbsp;|&nbsp; AI 分析：NVIDIA Nemotron 3</p>
     <p>本簡報由自動化系統生成，僅供學術參考，不構成醫療建議</p>
     <p>© ${new Date().getFullYear()} <a href="https://www.leepsyclinic.com/" target="_blank" rel="noopener">李政洋身心診所</a></p>
   </footer>
